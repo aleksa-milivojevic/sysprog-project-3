@@ -1,0 +1,7 @@
+http://localhost:5000/?location=Belgrade&from=2026-06-28&to=2026-06-29
+
+http://localhost:5000/?location=Belgrade&from=2026-06-28&to=2026-07-11
+
+http://localhost:5000/?location=Belgrade&from=2026-06-27&to=2026-06-29
+
+http://localhost:5000/?location=Belgrade&from=2026-06-28&
