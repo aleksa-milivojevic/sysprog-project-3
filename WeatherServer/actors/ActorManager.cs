@@ -25,12 +25,7 @@ public class ActorManager : UntypedActor
                 }
                 else
                 {
-                    Log.Info($"Creating location actor for {msg.ActorId}");
-                    var actor = Context.ActorOf(LocationActor.Props().WithDispatcher("weather-dispatcher"), $"actor-{msg.ActorId}");
-                    Context.Watch(actor);
-                    actor.Forward(msg);
-                    IdToActor.Add(msg.ActorId, actor);
-                    ActorToId.Add(actor, msg.ActorId);
+                    Log.Warning($"Location actor not found for {msg.ActorId}");
                 }
                 break;
             case ProcessWeatherData msg:
@@ -40,7 +35,12 @@ public class ActorManager : UntypedActor
                 }
                 else
                 {
-                    Log.Warning($"Location actor not found for {msg.ActorId}");
+                    Log.Info($"Creating location actor for {msg.ActorId}");
+                    var actor = Context.ActorOf(LocationActor.Props().WithDispatcher("weather-dispatcher"), $"actor-{msg.ActorId}");
+                    Context.Watch(actor);
+                    actor.Forward(msg);
+                    IdToActor.Add(msg.ActorId, actor);
+                    ActorToId.Add(actor, msg.ActorId);
                 }
                 break;
             case Terminated t:

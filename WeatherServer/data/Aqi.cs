@@ -23,14 +23,14 @@ public class Aqi
     }
 
     public Aqi(JObject data) {
-        Co = data["co"] != null ? data["co"].Value<double>() : 0;
-        No2 = data["no2"] != null ? data["no2"].Value<double>() : 0;
-        O3 = data["o3"] != null ? data["o3"].Value<double>() : 0;
-        So2 = data["so2"] != null ? data["so2"].Value<double>() : 0;
-        Pm2_5 = data["pm2_5"] != null ? data["pm2_5"].Value<double>() : 0;
-        Pm10 = data["pm10"] != null ? data["pm10"].Value<double>() : 0;
-        Us_Epa_Index = data["us-epa-index"] != null ? data["us-epa-index"].Value<int>() : 0;
-        Gb_Defra_Index = data["gb-defra-index"] != null ? data["gb-defra-index"].Value<int>() : 0;
+        Co = data["co"]?.Value<double>() ?? 0;
+        No2 = data["no2"]?.Value<double>() ?? 0;
+        O3 = data["o3"]?.Value<double>() ?? 0;
+        So2 = data["so2"]?.Value<double>() ?? 0;
+        Pm2_5 = data["pm2_5"]?.Value<double>() ?? 0;
+        Pm10 = data["pm10"]?.Value<double>() ?? 0;
+        Us_Epa_Index = data["us-epa-index"]?.Value<int>() ?? 0;
+        Gb_Defra_Index = data["gb-defra-index"]?.Value<int>() ?? 0;
     }
 
     public override string ToString() {

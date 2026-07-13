@@ -29,3 +29,4 @@
 /home/aleksa/sysprog-project-3/WeatherServer/obj/Debug/net10.0/WeatherServer.pdb
 /home/aleksa/sysprog-project-3/WeatherServer/obj/Debug/net10.0/WeatherServer.genruntimeconfig.cache
 /home/aleksa/sysprog-project-3/WeatherServer/obj/Debug/net10.0/ref/WeatherServer.dll
+/home/aleksa/sysprog-project-3/WeatherServer/obj/Debug/net10.0/WeatherServer.sourcelink.json

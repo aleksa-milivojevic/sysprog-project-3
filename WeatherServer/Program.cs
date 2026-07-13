@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 using Akka.Actor;
 using Actors;
 using Akka.Configuration;
+using System.Runtime.InteropServices;
 
 class Program
 {
-    private static ActorSystem _actorSystem;
-    private static IActorRef _actorManager;
-    private static WeatherApi _weatherApi;
+    private static ActorSystem? _actorSystem;
+    private static IActorRef? _actorManager;
+    private static WeatherApi? _weatherApi;
+    private static CancellationTokenSource? _cts;
 
     static async Task Main(string[] args)
     {
@@ -43,16 +45,31 @@ class Program
         using HttpListener listener = new HttpListener();
         listener.Prefixes.Add(url);
 
+        _cts = new CancellationTokenSource();
+        CancellationToken token = _cts.Token;
+
         try
         {
+            var gracefulShutdown = Task.Run(async () => await GracefulShutdown());
+
             listener.Start();
             Console.WriteLine($"[HTTP SERVER] Sluša na adresi {url}");
             Console.WriteLine("Primer upita: http://localhost:5000/?location=Belgrade&from=2026-06-28&to=2026-06-29");
 
+            var weatherCaller = Task.Run( async () => {
+                while (true) {
+                    Console.WriteLine($"\nZahtev za lokaciju: Beograd");
+
+                    await _weatherApi.FetchWeather("Belgrade");
+
+                    await Task.Delay(10000);
+                }
+            }, token);
+
             while (listener.IsListening)
             {
                 HttpListenerContext context = await listener.GetContextAsync();
-                _ = Task.Run(() => HandleRequest(context));
+                _ = Task.Run(() => HandleRequest(context), token);
             }
         }
         catch (Exception ex)
@@ -70,9 +87,9 @@ class Program
         var request = context.Request;
         var response = context.Response;
 
-        string location = request.QueryString["location"];
-        string fromStr = request.QueryString["from"];
-        string toStr = request.QueryString["to"];
+        string? location = request.QueryString["location"];
+        string? fromStr = request.QueryString["from"];
+        string? toStr = request.QueryString["to"];
 
         if (string.IsNullOrEmpty(location) || string.IsNullOrEmpty(fromStr) || string.IsNullOrEmpty(toStr))
         {
@@ -88,23 +105,12 @@ class Program
 
         try
         {
-            Console.WriteLine($"\n[HTTP] Zahtev za lokaciju: {location} ({fromStr} do {toStr})");
-
-            var requestMessage = new GetWeatherData(location, fromDate, toDate);
+            var requestMessage = new GetWeatherData(
+                location,
+                fromDate,
+                toDate
+            );
             object actorResponse = await _actorManager.Ask(requestMessage, TimeSpan.FromSeconds(3));
-
-            if (actorResponse is WeatherDataNotFound)
-            {
-                Console.WriteLine($"[HTTP] Podaci za {location} nisu u aktorima. Salje se api zahtev...");
-                
-                int days = (toDate.Date - DateTime.Now.Date).Days + 1;
-                if (days < 1) days = 1;
-
-                await _weatherApi.FetchWeather(location, days);
-
-                Console.WriteLine($"[HTTP] Ponovni upit ka aktoru za {location}...");
-                actorResponse = await _actorManager.Ask(requestMessage, TimeSpan.FromSeconds(3));
-            }
 
             switch (actorResponse)
             {
@@ -117,8 +123,8 @@ class Program
                     Respond(response, "Zahtevani datumi su van dozvoljenog opsega (istorijski podaci ili preko 14 dana unapred).", HttpStatusCode.BadRequest);
                     break;
 
-                default:
-                    Respond(response, "Podaci nisu dostupni ni nakon API poziva.", HttpStatusCode.NotFound);
+                case WeatherDataNotFound:
+                    Respond(response, "Podaci nisu dostupni.", HttpStatusCode.NotFound);
                     break;
             }
         }
@@ -140,4 +146,19 @@ class Program
         output.Write(buffer, 0, buffer.Length);
         response.Close();
     }
+
+    private static async Task GracefulShutdown() {
+            var waitForExit = new ManualResetEventSlim(false);
+            
+            PosixSignalRegistration.Create(PosixSignal.SIGINT, context => {
+                Console.WriteLine($"\n[Server] [{DateTime.Now}] SIGINT called");
+                Console.WriteLine($"[Server] [{DateTime.Now}] Shutting down gracefuly...");
+
+                if (_cts != null) _cts.Cancel();
+
+                waitForExit.Set();
+            });
+
+            waitForExit.Wait();
+        }
 }

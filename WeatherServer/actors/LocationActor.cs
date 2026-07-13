@@ -11,19 +11,19 @@ public sealed class LocationActor : UntypedActor
     protected override void PreStart() => Log.Info("ActorManager started");
     protected override void PostStop() => Log.Info("ActorManager stopped");
 
-    protected ILoggingAdapter Log { get; } = Context.GetLogger();
+    private ILoggingAdapter Log { get; } = Context.GetLogger();
 
     protected override void OnReceive(object message)
     {
         switch (message)
         {
             case ProcessWeatherData msg:
-                var date = msg.Data["date"].Value<string>();
+                var date = msg.Data["date"]?.Value<string>() ?? "";
                 if (_history.TryGetValue(date, out var weatherData))
                 {
-                    _history[date].Avg = msg.Data["day"]["avgtemp_c"].Value<double>();
-                    _history[date].Min = msg.Data["day"]["mintemp_c"].Value<double>();
-                    _history[date].Max = msg.Data["day"]["maxtemp_c"].Value<double>();
+                    _history[date].Avg = msg.Data["day"]["avgtemp_c"]?.Value<double>() ?? throw new Exception($"avg for date: {date} is null");
+                    _history[date].Min = msg.Data["day"]["mintemp_c"]?.Value<double>() ?? throw new Exception($"min for date: {date} is null");
+                    _history[date].Max = msg.Data["day"]["maxtemp_c"]?.Value<double>() ?? throw new Exception($"max for date: {date} is null");
                     if (msg.Data["day"]["air_quality"] is JObject aqij) {
                         _history[date].Aqi = new Aqi(aqij);
                     }
@@ -34,9 +34,9 @@ public sealed class LocationActor : UntypedActor
                 }
                 else
                 {
-                    var avg = msg.Data["day"]["avgtemp_c"].Value<double>();
-                    var min = msg.Data["day"]["mintemp_c"].Value<double>();
-                    var max = msg.Data["day"]["maxtemp_c"].Value<double>();
+                    var avg = msg.Data["day"]["avgtemp_c"]?.Value<double>() ?? throw new Exception($"avg for date: {date} is null");
+                    var min = msg.Data["day"]["mintemp_c"]?.Value<double>() ?? throw new Exception($"min for date: {date} is null");
+                    var max = msg.Data["day"]["maxtemp_c"]?.Value<double>() ?? throw new Exception($"max for date: {date} is null");
                     Aqi aqi;
                     if (msg.Data["day"]["air_quality"] is JObject aqij) {
                         aqi = new Aqi(aqij);
@@ -75,7 +75,7 @@ public sealed class LocationActor : UntypedActor
                 }
                 else
                 {
-                    if ((msg.FromDate.Date < DateTime.Now.Date) || (msg.ToDate.Date > DateTime.Now.Date.AddDays(14)))
+                    if ((msg.FromDate.Date < DateTime.Now.Date) || (msg.ToDate.Date > DateTime.Now.Date.AddDays(13)))
                     {
                         Sender.Tell(RequestOutOfBounds.Instance);
                     }
